@@ -10,10 +10,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
+from nutrition import aggregate_nutrition, calc_nutrition, daily_totals
+
 # Config constants - makes it easy to adjust later
 PRODUCT_CACHE_TIME = 300  # 5 min should be enough since products rarely change
 GOAL_CACHE_TIME = 60
-BASE_GRAMS = 100  # nutrition data is stored per 100g
 SHOW_LAST_DAYS = 7
 DEFAULT_QTY = 100.0
 
@@ -93,80 +94,38 @@ def get_week_data() -> pd.DataFrame:
 # Write operations
 # ============================================
 def add_food_log(product_id: int, qty: float, date: str):
-    try:
-        if qty <= 0:
-            raise ValueError("Quantity must be greater than 0")
-        if qty > 10000:  # sanity check - nobody eats 10kg in one serving
-            raise ValueError("Quantity cannot exceed 10000g")
-        
-        supabase.table("daily_logs").insert({
-            "product_id": product_id,
-            "quantity": qty,
-            "log_date": date
-        }).execute()
-    except Exception as e:
-        st.error(f"Failed to add food log: {str(e)}")
-        raise
+    if qty <= 0:
+        raise ValueError("Quantity must be greater than 0")
+    if qty > 10000:  # sanity check - nobody eats 10kg in one serving
+        raise ValueError("Quantity cannot exceed 10000g")
+
+    supabase.table("daily_logs").insert({
+        "product_id": product_id,
+        "quantity": qty,
+        "log_date": date
+    }).execute()
 
 def delete_log(log_id: int):
-    try:
-        supabase.table("daily_logs").delete().eq("id", log_id).execute()
-    except Exception as e:
-        st.error(f"Failed to delete food log: {str(e)}")
-        raise
+    supabase.table("daily_logs").delete().eq("id", log_id).execute()
 
 def update_goals(cals: int, protein: int, carbs: int, fat: int):
-    try:
-        existing = supabase.table("user_goals").select("id").limit(1).execute()
-        if existing.data:
-            supabase.table("user_goals").update({
-                "daily_calories": cals,
-                "daily_protein": protein,
-                "daily_carbs": carbs,
-                "daily_fat": fat,
-                "updated_at": datetime.now().isoformat()
-            }).eq("id", existing.data[0]["id"]).execute()
-        else:
-            supabase.table("user_goals").insert({
-                "daily_calories": cals,
-                "daily_protein": protein,
-                "daily_carbs": carbs,
-                "daily_fat": fat
-            }).execute()
-        get_goals.clear()  # clear cache so new goals show up immediately
-    except Exception as e:
-        st.error(f"Failed to update goals: {str(e)}")
-        raise
-
-# ============================================
-# Helper functions
-# ============================================
-def calc_nutrition(food: dict, amount: float) -> dict:
-    """Calculate nutrition for actual serving size - all db values are per 100g"""
-    ratio = amount / BASE_GRAMS
-    return {
-        "calories": food.get("calories", 0) * ratio,
-        "protein": food.get("protein", 0) * ratio,
-        "carbs": food.get("carbs", 0) * ratio,
-        "fat": food.get("fat", 0) * ratio
-    }
-
-def daily_totals(logs_df: pd.DataFrame) -> dict:
-    if logs_df.empty:
-        return {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
-    
-    totals = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
-    
-    for _, row in logs_df.iterrows():
-        food = row.get("products", {})
-        if food:
-            nutri = calc_nutrition(food, row["quantity"])
-            totals["calories"] += nutri["calories"]
-            totals["protein"] += nutri["protein"]
-            totals["carbs"] += nutri["carbs"]
-            totals["fat"] += nutri["fat"]
-    
-    return totals
+    existing = supabase.table("user_goals").select("id").limit(1).execute()
+    if existing.data:
+        supabase.table("user_goals").update({
+            "daily_calories": cals,
+            "daily_protein": protein,
+            "daily_carbs": carbs,
+            "daily_fat": fat,
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", existing.data[0]["id"]).execute()
+    else:
+        supabase.table("user_goals").insert({
+            "daily_calories": cals,
+            "daily_protein": protein,
+            "daily_carbs": carbs,
+            "daily_fat": fat
+        }).execute()
+    get_goals.clear()  # clear cache so new goals show up immediately
 
 # ============================================
 # Streamlit UI
@@ -226,9 +185,13 @@ with st.sidebar:
         new_fat = st.number_input("Fat (g)", value=user_goals["daily_fat"], min_value=20, max_value=200, step=5)
         
         if st.button("💾 Save Goals", use_container_width=True):
-            update_goals(new_cals, new_protein, new_carbs, new_fat)
-            st.success("Goals updated successfully!")
-            st.rerun()
+            try:
+                update_goals(new_cals, new_protein, new_carbs, new_fat)
+            except Exception as e:
+                st.error(f"Failed to update goals: {str(e)}")
+            else:
+                st.success("Goals updated successfully!")
+                st.rerun()
     
     st.divider()
     
@@ -316,10 +279,11 @@ with col_left:
         if st.button("✅ Add Log", type="primary", use_container_width=True):
             try:
                 add_food_log(int(food_data["id"]), amount, date_str)
+            except Exception as e:
+                st.error(f"Failed to add food log: {str(e)}")
+            else:
                 st.success(f"Added: {selected_food} {amount}{food_data['serving_unit']}")
                 st.rerun()
-            except Exception:
-                pass
     else:
         st.warning("No food data available. Please add products to the database first.")
 
@@ -341,9 +305,10 @@ with col_right:
                     if st.button("🗑️", key=f"del_{log['id']}", help="Delete this log"):
                         try:
                             delete_log(log["id"])
+                        except Exception as e:
+                            st.error(f"Failed to delete food log: {str(e)}")
+                        else:
                             st.rerun()
-                        except Exception:
-                            pass
                 st.divider()
     else:
         st.info("No logs for today yet. Add your first meal!")
@@ -366,16 +331,8 @@ if not week_data.empty:
         
         day_logs = week_data[week_data["log_date"] == date_str_for_loop]
         
-        day_total = {"date": current_date.strftime("%m/%d"), "calories": 0, "protein": 0, "carbs": 0, "fat": 0}
-        
-        for _, row in day_logs.iterrows():
-            food = row.get("products", {})
-            if food:
-                nutri = calc_nutrition(food, row["quantity"])
-                day_total["calories"] += nutri["calories"]
-                day_total["protein"] += nutri["protein"]
-                day_total["carbs"] += nutri["carbs"]
-                day_total["fat"] += nutri["fat"]
+        day_total = aggregate_nutrition(day_logs)
+        day_total["date"] = current_date.strftime("%m/%d")
         
         daily_summary.append(day_total)
     
