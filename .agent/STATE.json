@@ -1,38 +1,43 @@
 {
-  "task_id": "mcp-longrun-30",
-  "task": "MiniWork long-run engineering audit and low-risk developer documentation improvement",
-  "branch": "agent/mcp-longrun-30",
+  "task_id": "fix-error-handling-and-nutrition-tests",
+  "task": "Fix error handling and nutrition aggregation; add first automated regression tests",
+  "branch": "fix/error-handling-and-nutrition-tests",
   "status": "running",
-  "phase": "phase_6_final_validation_complete",
+  "phase": "final_validation_complete",
   "completed": [
-    "Established clean baseline and created agent/mcp-longrun-30 from main",
-    "Completed full project engineering audit",
-    "Created LONGRUN_REPORT.md and MEMORY.md",
-    "Ran syntax/compile/import/requirements checks and classified environment failures",
-    "Validated STATE.json structure",
-    "Ran final git status, git diff, git diff --stat and read all three .agent files",
-    "Confirmed final working changes are limited to .agent/STATE.json, .agent/MEMORY.md and .agent/LONGRUN_REPORT.md"
+    "Fetched origin, fast-forwarded main, and verified main matches origin/main",
+    "Created fix/error-handling-and-nutrition-tests from b5cb7beca0ed8f39de35ad762faa08d586e5b795",
+    "Removed silent Add/Delete exception swallowing and centralized write-error UI handling",
+    "Moved pure nutrition calculation/aggregation to src/nutrition.py",
+    "Changed weekly chart aggregation to reuse aggregate_nutrition",
+    "Added requirements-dev.txt and tests/test_nutrition.py",
+    "Installed isolated .venv dependencies",
+    "Runtime imports passed",
+    "Compile checks passed",
+    "Full pytest passed: 15 passed",
+    "Reviewer search confirmed no except Exception: pass",
+    "git diff --check passed"
   ],
-  "findings": [
-    "Branch remains agent/mcp-longrun-30",
-    "No tracked business file is modified",
-    "Normal git diff/diff --stat are empty because all three final files are new untracked files; git status --short --untracked-files=all enumerates exactly those three files",
-    "STATE.json is valid JSON and contains all user-requested recovery fields",
-    "Project syntax checks pass; runtime import failure is due to missing local dependencies; pip dry-run resolves requirements",
-    "No automated tests exist"
+  "current_findings": [
+    "Write functions now raise failures without calling st.error",
+    "Add/Delete/Goals UI handlers each display a failed operation once and do not rerun on failure",
+    "Success paths retain success/rerun behavior",
+    "BASE_GRAMS remains 100 and formulas are unchanged",
+    "daily_totals and weekly chart share aggregate_nutrition",
+    "Missing/empty/non-mapping products rows are skipped safely"
   ],
+  "test_status": "15 passed; compile/import/diff-check passed",
   "next": [
-    "Commit only the three .agent files with the requested commit message",
-    "Verify git status and git log -1 --oneline",
-    "Push only agent/mcp-longrun-30 to origin",
-    "Do not merge or modify main"
+    "Run final git diff, diff --stat and status --short --untracked-files=all",
+    "Commit requested files",
+    "Verify git log and clean status",
+    "Push only fix/error-handling-and-nutrition-tests to origin"
   ],
-  "latest_commit": "4599acf91ee822dccc18b404b0599423afec69ee",
-  "timestamp": "2026-09-22T13:46:01-06:00",
+  "latest_commit": "b5cb7beca0ed8f39de35ad762faa08d586e5b795",
   "schema_version": 1,
-  "updated_at": "2026-09-22T19:46:14.758336+00:00",
-  "head_at_checkpoint": "4599acf91ee822dccc18b404b0599423afec69ee",
-  "git_status": "?? .agent/\n",
+  "updated_at": "2026-09-22T20:04:06.874975+00:00",
+  "head_at_checkpoint": "b5cb7beca0ed8f39de35ad762faa08d586e5b795",
+  "git_status": " M .agent/MEMORY.md\n M .agent/STATE.json\n M src/app.py\n?? .agent/TASK.md\n?? requirements-dev.txt\n?? src/nutrition.py\n?? tests/\n",
   "jobs_at_checkpoint": [
     {
       "job_id": "62a4a0a067c44d938019e1d5f2de691b",
@@ -246,6 +251,106 @@
     },
     {
       "job_id": "aff180d4baf24f9fbcf0adc5e6daddd4",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "ff28e5df71ea4745814636a1b387604b",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "99bb9984528e4529880d1c26fbc6c466",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "e34d350312fc45dea700e30057fea879",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "1e66048bcae54ee6964bee851f984f8f",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "7e203c5c593c428480a92e1141a0e9c3",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "854ee2bb76704d17af248d5957b0b1e0",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "645a5c7b95a7432c81818f15b777a158",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "c5f0c8f042c84b64a1b4e312f634a059",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "e9915e6800484c438c9055238de3da9a",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "101c6e4f78c44b5e8cd2a88fbe02e93f",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "a2abedffd2834463aeb2411d7a4f3846",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "a08024b1ab734e6c9a6112600dcbb5b8",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "997c9e44553f4937a927cd488c44960b",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "f7df51e25bb44ee2abcfae967cb83998",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "1c10a91513384242984719f789171433",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "083c14ed55334575b040b19eaf1997b3",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "cba379c7930640d7bf2f1e52b6db2f9e",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "08c4c46fc51b420a850cdb9c4d44947c",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "89b0a46105914d76b868edae71b5a86d",
+      "status": "completed",
+      "exit_code": 0
+    },
+    {
+      "job_id": "c41d321114f94de99d22375625ef7aaa",
       "status": "completed",
       "exit_code": 0
     }
