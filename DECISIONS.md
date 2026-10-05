@@ -47,3 +47,15 @@ Playwright E2E 需要 `streamlit run` 真跑起来。supabase-py 只会说 REST�
 ## 8. 覆盖率如实上报，app.py（纯 UI）不硬凑覆盖率
 
 `app.py` 是 Streamlit 页面脚本，导入即执行 UI 代码，不纳入单测；覆盖率报告会显示它 0%。这是如实数字，不为好看而排除或造假。业务逻辑全部位于 `src/nutrition.py` 和 `src/database.py`，这两个文件要求高覆盖。
+
+## 9. Playwright 浏览器装进项目目录（`.playwright-browsers/`）
+
+规则要求只在本文件夹内工作。Playwright 默认把 Chromium 装到 `~/Library/Caches/ms-playwright`（文件夹之外），所以本地安装时用 `PLAYWRIGHT_BROWSERS_PATH=$PWD/.playwright-browsers` 重定向，并加进 `.gitignore`。E2E 的 conftest 只在该目录存在时才设置这个环境变量，CI 里仍用默认缓存位置。这不是系统级安装：只是项目目录里的一组浏览器二进制文件。
+
+## 10. E2E 断言"持久状态"，不断言一闪而过的提示
+
+App 在 `st.success()` 之后立刻 `st.rerun()`，成功提示实际上不会停留在页面上（重构前后行为一致）。所以 E2E 的"记录一餐"测试断言的是持久证据：Today's Logs 里出现该条目 + 顶部宏量指标变为对应数值。E2E 里发现的这个行为与重构前代码完全相同，没有为测试去改 app 的行为。
+
+## 11. 文档里的每个数字都来自真实命令输出
+
+README/STATUS 里的测试数量和覆盖率直接取自本地最后一次运行的 pytest 输出（58 + 3 通过；nutrition.py 100%、database.py 100%、app.py 0%、src/ 合计 28%）。Docker build 和 GitHub Actions 在本机无法执行，一律标"未验证"，不写任何想象的数字。
