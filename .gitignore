@@ -153,3 +153,7 @@ Thumbs.db
 
 # Playwright browsers installed locally for E2E (see DECISIONS.md)
 .playwright-browsers/
+
+# Private working notes (kept locally, not part of the repo)
+STATUS.md
+walkthrough.md
