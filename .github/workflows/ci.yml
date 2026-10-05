@@ -1,0 +1,90 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fitstack_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fitstack_test
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run unit + integration tests (coverage)
+        run: >
+          python -m pytest tests --ignore=tests/e2e
+          --cov=src --cov-report=term --cov-report=xml
+
+      - name: Install Playwright browser
+        run: playwright install --with-deps chromium
+
+      - name: Run E2E tests (Streamlit UI via Playwright)
+        run: python -m pytest tests/e2e --browser chromium
+
+      - name: Write coverage summary
+        if: always()
+        run: |
+          python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse("coverage.xml").getroot()
+          covered = int(root.get("lines-covered"))
+          valid = int(root.get("lines-valid"))
+          rate = float(root.get("line-rate")) * 100
+          print("## Coverage")
+          print()
+          print(f"**{covered}/{valid} lines covered ({rate:.1f}%)**")
+          print()
+          print("| File | Statements | Missing | Cover |")
+          print("|---|---|---|---|")
+          for cls in root.iter("class"):
+              # coverage >= 7.10 dropped the statements/missing attributes
+              # on <class>; count <line> elements instead
+              line_els = cls.findall("lines/line")
+              stmts = len(line_els)
+              miss = sum(1 for ln in line_els if int(ln.get("hits", 0)) == 0)
+              pct = 0 if stmts == 0 else (stmts - miss) / stmts * 100
+              print(f"| `{cls.get('filename')}` | {stmts} | {miss} | {pct:.0f}% |")
+          EOF
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  docker-build:
+    # Verify the Dockerfile builds; image is never pushed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (no push)
+        run: docker build -t fitstack-macro-tracker:ci .

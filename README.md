@@ -65,6 +65,68 @@ py -m pip install -r requirements.txt
 py -m streamlit run src/app.py
 ```
 
+### Docker
+
+A `Dockerfile` is provided (python:3.12-slim). Credentials are passed as env
+vars instead of secrets.toml (`src/app.py` checks `SUPABASE_URL` /
+`SUPABASE_KEY` first):
+
+```bash
+docker build -t fitstack-macro-tracker .
+docker run -p 8501:8501 \
+    -e SUPABASE_URL=https://your-project.supabase.co \
+    -e SUPABASE_KEY=your-anon-key \
+    fitstack-macro-tracker
+```
+
+## 🧪 Testing
+
+The data layer (`src/database.py`) and the pure nutrition math
+(`src/nutrition.py`) are separated from the Streamlit UI so they can be
+tested directly. Test layout:
+
+| File | Tests | What it covers |
+|---|---|---|
+| `tests/test_nutrition.py` | 15 | per-100g scaling, aggregation, malformed rows |
+| `tests/test_goal_progress.py` | 7 | goal % (cap at 100, zero/negative goals) |
+| `tests/test_weekly_trend.py` | 8 | 7-day bucketing, zero-fill, out-of-range logs |
+| `tests/test_database_unit.py` | 14 | data-access functions vs an in-memory fake client |
+| `tests/test_database_integration.py` | 14 | same functions vs a real PostgreSQL |
+| `tests/e2e/test_app_flows.py` | 3 | Playwright: record meal, macros update, trend chart |
+
+**61 tests total.** The integration tests run the production data-access
+functions against vanilla PostgreSQL using `docx/schema.sql` (seed data
+included), through a small psycopg adapter
+(`tests/postgres_client.py`) that speaks the same query-builder API as
+supabase-py.
+
+```bash
+py -m pip install -r requirements-dev.txt
+
+# unit + integration with coverage (integration tests need PostgreSQL:
+# set DATABASE_URL, or rely on the bundled pgserver package locally)
+python -m pytest tests --ignore=tests/e2e --cov=src --cov-report=term
+
+# E2E (one-time: playwright install chromium)
+python -m pytest tests/e2e --browser chromium
+
+# everything
+python -m pytest
+```
+
+The E2E tests launch the real Streamlit app against a local in-memory
+PostgREST stub (`tests/e2e/postgrest_stub.py`) - no Supabase account or
+network access needed.
+
+Latest local run (Python 3.12, macOS arm64): **58 passed** for unit +
+integration (`--cov=src`), plus **3 passed** E2E. Coverage:
+`src/nutrition.py` 100%, `src/database.py` 100%, `src/app.py` 0% (pure
+Streamlit UI, intentionally not unit-tested) - **28% of src/ lines**.
+CI runs the same suite on every push (GitHub Actions with a PostgreSQL 16
+service container and a coverage report in the job summary).
+
+## 📁 Project Structure
+
 ## 📊 Database Schema
 
 ```sql
@@ -93,7 +155,12 @@ CREATE INDEX idx_daily_logs_product ON daily_logs(product_id);
 
 ```
 ├── docx/schema.sql       # Database schema + seed data
-├── src/app.py            # Main application (450 lines)
+├── src/app.py            # Streamlit UI (caching, error display, layout)
+├── src/database.py       # Data-access functions (client injected as argument)
+├── src/nutrition.py      # Pure nutrition math and aggregation
+├── tests/                # pytest unit + integration + Playwright E2E
+├── .github/workflows/    # CI: postgres service container + coverage
+├── Dockerfile            # Container image for the app
 ├── requirements.txt      # Python dependencies
 └── progress_log.md       # Development log
 ```
