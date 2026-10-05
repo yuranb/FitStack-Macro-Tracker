@@ -76,3 +76,12 @@ jobs:
         with:
           name: coverage-report
           path: coverage.xml
+
+  docker-build:
+    # Verify the Dockerfile builds; image is never pushed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (no push)
+        run: docker build -t fitstack-macro-tracker:ci .
