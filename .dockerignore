@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+venv
+.playwright-browsers
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+coverage.xml
+htmlcov
+tests
+.streamlit/secrets.toml
+Dockerfile
+docker-compose.yml
