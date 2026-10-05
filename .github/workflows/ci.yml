@@ -64,8 +64,11 @@ jobs:
           print("| File | Statements | Missing | Cover |")
           print("|---|---|---|---|")
           for cls in root.iter("class"):
-              stmts = int(cls.get("statements"))
-              miss = int(cls.get("missing"))
+              # coverage >= 7.10 dropped the statements/missing attributes
+              # on <class>; count <line> elements instead
+              line_els = cls.findall("lines/line")
+              stmts = len(line_els)
+              miss = sum(1 for ln in line_els if int(ln.get("hits", 0)) == 0)
               pct = 0 if stmts == 0 else (stmts - miss) / stmts * 100
               print(f"| `{cls.get('filename')}` | {stmts} | {miss} | {pct:.0f}% |")
           EOF
