@@ -150,3 +150,6 @@ cython_debug/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Playwright browsers installed locally for E2E (see DECISIONS.md)
+.playwright-browsers/
