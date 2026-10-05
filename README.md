@@ -1,10 +1,31 @@
-# FitStack Macro Tracker 💪
+# FitStack Macro Tracker
 
-A nutrition tracking application built for my Database Modeling course final project. Tracks daily macronutrient intake with PostgreSQL backend and caching layer.
+[![CI](https://github.com/yuranb/FitStack-Macro-Tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuranb/FitStack-Macro-Tracker/actions/workflows/ci.yml)
 
-**Development Time**: 57 hours
+A Streamlit + PostgreSQL nutrition tracker with a tested data-access layer, PostgreSQL integration tests, Playwright E2E tests and CI.
 
-## 🎯 What It Does
+## Background
+
+Originally built as the final project for BYU's Database Modeling course, then refactored with a tested data-access layer, integration and end-to-end tests, and CI.
+
+## Engineering Highlights
+
+- Data-access layer (`src/database.py`) and pure nutrition math (`src/nutrition.py`) are separated from the Streamlit UI, so both can be tested directly
+- 61 tests — 58 unit + integration tests (the integration suite runs against real PostgreSQL) plus 3 Playwright E2E tests; `src/nutrition.py` and `src/database.py` at 100% coverage
+- GitHub Actions CI runs the suite on a PostgreSQL 16 service container and builds the Docker image on every push
+- 3-table normalized schema with foreign keys, `ON DELETE CASCADE`, and indexes
+- Cache-aside caching through Streamlit's `@st.cache_data`
+
+## Architecture
+
+```mermaid
+graph LR
+    UI["Streamlit UI (src/app.py)"] --> NUT["Nutrition logic (src/nutrition.py)"]
+    UI --> DAL["Data-access layer (src/database.py)"]
+    DAL --> PG[("PostgreSQL (Supabase)")]
+```
+
+## What It Does
 
 **Core Features:**
 - Log daily food intake with portion sizes
@@ -12,7 +33,7 @@ A nutrition tracking application built for my Database Modeling course final pro
 - Set and track daily nutritional goals
 - View 7-day intake trends with charts
 
-## 🗄️ Database Design
+## Database Design
 
 Built around three relational tables in PostgreSQL:
 
@@ -27,7 +48,7 @@ Built around three relational tables in PostgreSQL:
 - Indexes on `log_date` and `product_id` for query optimization
 - `DECIMAL` type for nutritional values (precision matters)
 
-## 🔄 Caching Strategy (Cache-Aside)
+## Caching Strategy (Cache-Aside)
 
 Implemented using Streamlit's `@st.cache_data` decorator:
 
@@ -35,8 +56,8 @@ Implemented using Streamlit's `@st.cache_data` decorator:
 @st.cache_data(ttl=300)  # 5 min TTL
 def get_foods():
     # Products rarely change, safe to cache
-    
-@st.cache_data(ttl=60)   # 1 min TTL  
+
+@st.cache_data(ttl=60)   # 1 min TTL
 def get_goals():
     # Goals might be updated more frequently
 
@@ -46,14 +67,14 @@ def get_todays_logs(date):
 
 **Purpose:** Reduce database read load by caching static/semi-static data.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend:** Streamlit (Python)
 - **Database:** Supabase (hosted PostgreSQL)
 - **Visualization:** Plotly
 - **Caching:** Streamlit cache layer
 
-## 🚀 Running the App
+## Running the App
 
 ```bash
 # Install dependencies
@@ -79,7 +100,7 @@ docker run -p 8501:8501 \
     fitstack-macro-tracker
 ```
 
-## 🧪 Testing
+## Testing
 
 The data layer (`src/database.py`) and the pure nutrition math
 (`src/nutrition.py`) are separated from the Streamlit UI so they can be
@@ -125,9 +146,7 @@ Streamlit UI, intentionally not unit-tested) - **28% of src/ lines**.
 CI runs the same suite on every push (GitHub Actions with a PostgreSQL 16
 service container and a coverage report in the job summary).
 
-## 📁 Project Structure
-
-## 📊 Database Schema
+## Database Schema
 
 ```sql
 CREATE TABLE products (
@@ -151,7 +170,7 @@ CREATE INDEX idx_daily_logs_date ON daily_logs(log_date);
 CREATE INDEX idx_daily_logs_product ON daily_logs(product_id);
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── docx/schema.sql       # Database schema + seed data
@@ -165,7 +184,7 @@ CREATE INDEX idx_daily_logs_product ON daily_logs(product_id);
 └── progress_log.md       # Development log
 ```
 
-## 💡 What I Learned
+## Design Decisions
 
 **Database concepts:**
 - Relational database design with foreign keys
