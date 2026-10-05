@@ -59,3 +59,8 @@ After `st.success()` the app immediately calls `st.rerun()`, so the success toas
 ## 11. Every number in the docs comes from real command output
 
 Test counts and coverage figures in the README are taken directly from the last local pytest run (58 + 3 passing; nutrition.py 100%, database.py 100%, app.py 0%, 28% of src/ lines). Docker builds and GitHub Actions could not be executed on this machine, so they are marked "not verified locally" rather than filled in with imagined numbers.
+
+## 12. The test adapter pins `COLLATE "C"` for text ordering
+
+The first CI run failed one integration test: `ORDER BY name` returned `Banana` before `BCAA` on CI, while the test compared against Python's `sorted()`, which is codepoint order. Cause: the CI postgres image initializes its cluster with `en_US.utf8` (case-insensitive primary weights), while local pgserver uses the C locale. Sorting text is collation-defined, so "sorted by name" means different things per environment.
+Fix lives in test infrastructure only: `tests/postgres_client.py` appends `COLLATE "C"` to ORDER BY for character columns (looked up via information_schema), making the results byte-ordered and identical on any PostgreSQL. The production supabase-py path is untouched — ordering there stays whatever the production database's collation is.

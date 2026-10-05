@@ -147,11 +147,30 @@ class PostgresQuery:
             return sql.SQL(""), params
         return sql.SQL(" WHERE ") + sql.SQL(" AND ").join(clauses), params
 
+    def _is_text_column(self, column):
+        """True if the column's data type is character data (collatable)."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_name = %s AND column_name = %s",
+                (self._table, column),
+            )
+            row = cur.fetchone()
+        return row is not None and row[0] in ("character varying", "character", "text")
+
     def _execute_select(self):
         where_sql, params = self._where_sql()
         order_sql = sql.SQL("")
         if self._order:
-            order_sql = sql.SQL(" ORDER BY t.{} ASC").format(sql.Identifier(self._order))
+            order_expr = sql.SQL("t.{}").format(sql.Identifier(self._order))
+            if self._is_text_column(self._order):
+                # Pin the collation so ordering is identical on every
+                # PostgreSQL: a database initialized with e.g. en_US.utf8
+                # (the CI postgres image default) sorts text
+                # case-insensitively, which would not match the tests'
+                # Python-side sorted() comparisons.
+                order_expr = sql.SQL('{} COLLATE "C"').format(order_expr)
+            order_sql = sql.SQL(" ORDER BY {} ASC").format(order_expr)
         limit_sql = sql.SQL("")
         if self._limit is not None:
             limit_sql = sql.SQL(" LIMIT {}").format(sql.Literal(self._limit))
