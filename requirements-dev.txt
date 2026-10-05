@@ -1,2 +1,10 @@
 -r requirements.txt
 pytest>=8.0,<10
+pytest-cov
+# psycopg adapter used by integration tests to talk to plain PostgreSQL
+psycopg[binary]
+# embedded PostgreSQL for local integration tests (CI uses a postgres
+# service container via DATABASE_URL instead)
+pgserver
+# E2E tests - also needs: playwright install chromium
+pytest-playwright
